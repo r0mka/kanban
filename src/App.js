@@ -1,50 +1,65 @@
 import React, { useState } from 'react';
 import './App.css';
-import { v4 as uuid } from 'uuid';
+import { Container, Row } from 'reactstrap';
+import { DragDropContext } from 'react-beautiful-dnd';
 import Board from './components/Board';
-
-const initialTasks = [
-  {
-    id: uuid(),
-    title: 'First Task',
-    priority: 2,
-    status: 'todo',
-  },
-  {
-    id: uuid(),
-    title: 'Second Task',
-    priority: 3,
-    status: 'review',
-  },
-  {
-    id: uuid(),
-    title: 'Third Task',
-    priority: 2,
-    status: 'progress',
-  },
-  {
-    id: uuid(),
-    title: 'Second Task',
-    priority: 3,
-    status: 'done',
-  },
-];
-
-const statuses = ['todo', 'review', 'progress', 'done'];
+import initialData from './initialData';
 
 function App() {
-  const [tasks, setTasks] = useState(initialTasks);
+  const [state, setState] = useState(initialData);
+
+  const onDragEnd = (result) => {
+    const { destination, source, draggableId } = result;
+
+    if (!destination) {
+      return;
+    }
+
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    const column = state.columns[source.droppableId];
+
+    const newTaskIds = Array.from(column.taskIds);
+    newTaskIds.splice(source.index, 1);
+    newTaskIds.splice(destination.index, 0, draggableId);
+
+    const newColumn = {
+      ...column,
+      taskIds: newTaskIds,
+    };
+
+    const newState = {
+      ...state,
+      columns: {
+        ...state.columns,
+        [newColumn.id]: newColumn,
+      },
+    };
+
+    setState(newState);
+  };
 
   return (
     <div className="App">
       <h1>Kanban</h1>
-      {statuses.map((status) => (
-        <Board key={status} status={status} tasks={tasks} />
-      ))}
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Container>
+          <Row md="4" sm="2" xs="1">
+            {state.columnOrder.map((columnId) => {
+              const column = state.columns[columnId];
+              const tasks = column.taskIds.map((taskId) => state.tasks[taskId]);
+              return <Board key={columnId} column={column} tasks={tasks} />;
+            })}
+          </Row>
+        </Container>
+      </DragDropContext>
     </div>
   );
 }
 
 export default App;
-
-// form CreateTask
